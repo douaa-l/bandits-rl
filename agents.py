@@ -52,3 +52,38 @@ class UCBAgent:
         self.N[action] += 1
         # Moyenne incrémentale : Q <- Q + (1/n) * (R - Q)
         self.Q[action] += (reward - self.Q[action]) / self.N[action]
+
+class GradientBanditAgent:
+    """Gradient bandit : préférences H et softmax (slides 20-21)."""
+
+    def __init__(self, k=10, alpha=0.1, use_baseline=True, seed=None):
+        self.k = k
+        self.alpha = alpha
+        self.use_baseline = use_baseline          # utiliser la référence R̄ ou non
+        self.rng = np.random.default_rng(seed)
+        self.H = np.zeros(k)                      # préférences H(a), toutes à 0 au départ
+        self.pi = np.ones(k) / k                  # probabilités pi(a)
+        self.avg_reward = 0.0                     # référence R̄ : moyenne de tous les gains
+        self.t = 0
+
+    def _softmax(self):
+        # pi(a) = e^H(a) / somme des e^H(b)
+        exp_h = np.exp(self.H - self.H.max())
+        return exp_h / exp_h.sum()
+
+    def select_action(self):
+        self.pi = self._softmax()
+        # Tirage au sort d'une machine selon les probabilités pi
+        return int(self.rng.choice(self.k, p=self.pi))
+
+    def update(self, action, reward):
+        self.t += 1
+        # Mise à jour de la moyenne de tous les gains (R̄)
+        self.avg_reward += (reward - self.avg_reward) / self.t
+        baseline = self.avg_reward if self.use_baseline else 0.0
+
+        # one_hot vaut 1 pour la machine choisie, 0 pour les autres
+        one_hot = np.zeros(self.k)
+        one_hot[action] = 1
+        # Formules de la slide 21, pour toutes les machines d'un coup
+        self.H += self.alpha * (reward - baseline) * (one_hot - self.pi)

@@ -4,11 +4,11 @@ import numpy as np
 class BanditEnv:
     """Problème des k machines à sous (slide 13 du cours)."""
 
-    def __init__(self, k=10, seed=None):
+    def __init__(self, k=10, seed=None, true_mean=0.0):
         self.k = k
         self.rng = np.random.default_rng(seed)
         # Vraies valeurs cachées q*(a), tirées selon une loi normale N(0, 1)
-        self.q_star = self.rng.normal(0, 1, size=k)
+        self.q_star = self.rng.normal(true_mean, 1, size=k)
         # La meilleure machine (celle que l'agent doit trouver)
         self.best_action = int(np.argmax(self.q_star))
 
