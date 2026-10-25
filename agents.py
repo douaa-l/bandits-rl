@@ -25,3 +25,30 @@ class EpsilonGreedyAgent:
         step = 1 / self.N[action] if self.alpha is None else self.alpha
         # Q <- Q + pas * (gain observé - Q)
         self.Q[action] += step * (reward - self.Q[action])
+
+class UCBAgent:
+    """Agent UCB, Upper Confidence Bound (slide 19)."""
+
+    def __init__(self, k=10, c=2.0, seed=None):
+        self.k = k
+        self.c = c                                # degré d'exploration
+        self.rng = np.random.default_rng(seed)
+        self.Q = np.zeros(k)                      # estimations Q(a)
+        self.N = np.zeros(k, dtype=int)           # nombre de fois où chaque machine a été jouée
+        self.t = 0                                # numéro du tour
+
+    def select_action(self):
+        self.t += 1
+        # Une machine jamais jouée a un bonus infini : on la choisit en priorité
+        untried = np.flatnonzero(self.N == 0)
+        if len(untried) > 0:
+            return int(self.rng.choice(untried))
+        # Score UCB = Q + c * racine(ln(t) / N)
+        ucb = self.Q + self.c * np.sqrt(np.log(self.t) / self.N)
+        best = np.flatnonzero(ucb == ucb.max())
+        return int(self.rng.choice(best))
+
+    def update(self, action, reward):
+        self.N[action] += 1
+        # Moyenne incrémentale : Q <- Q + (1/n) * (R - Q)
+        self.Q[action] += (reward - self.Q[action]) / self.N[action]
